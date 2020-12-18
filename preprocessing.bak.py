@@ -1,44 +1,16 @@
 from pathlib import Path
 
-import csv
 import click
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
 from scapy.compat import raw
-from scapy.layers.inet import IP, UDP, TCP
+from scapy.layers.inet import IP, UDP
 from scapy.layers.l2 import Ether
 from scapy.packet import Padding
 from scipy import sparse
 
 from utils import should_omit_packet, read_pcap, PREFIX_TO_APP_ID, PREFIX_TO_TRAFFIC_ID
-
-flows = {}
-found = 0
-notFound = 0
-
-
-def dfi(packet):
-    quintuple = ""
-    if IP in packet:
-        quintuple += packet[IP].src + "-" + packet[IP].dst + "-"
-    if TCP in packet:
-        quintuple += str(packet[TCP].sport) + "-" + str(packet[TCP].dport) + "-"
-    elif UDP in packet:
-        quintuple += str(packet[UDP].sport) + "-" + str(packet[UDP].dport) + "-"
-    if IP in packet:
-        quintuple += str(packet[IP].proto)
-    print("Flow ID:", quintuple)
-    if quintuple in flows:
-        print("Flow features:", flows[quintuple])
-        global found
-        found = found + 1
-        return list(map(float, flows[quintuple][7:-1]))
-    else:
-        print("Missed, will return:", [-1.0] * 76)
-        global notFound
-        notFound = notFound + 1
-        return [-1.0] * 76
 
 
 def remove_ether_header(packet):
@@ -97,29 +69,18 @@ def transform_packet(packet):
     return arr
 
 
+#def transform_pcap(path, output_path, output_batch_size=10000):
 def transform_pcap(path, output_path: Path = None, output_batch_size=10000):
-    # if Path(str(output_path.absolute()) + '_SUCCESS').exists():
-    #    print(output_path, 'Done')
-    #    return
+    if Path(str(output_path.absolute()) + '_SUCCESS').exists():
+        print(output_path, 'Done')
+        return
 
-    # read flow features
-    with open('../csv/' + path.name + '_Flow.csv', 'r') as f:
-        reader = csv.reader(f)
-        next(reader)
-        # print(type(reader))
-        for flow in reader:
-            flows[flow[0]] = flow[7:-1]
-    # for i in flows:
-    #    print(i, ':', flows[i])
+    print('Processing', path)
 
-    print('Processing', path.name)
     rows = []
     batch_index = 0
     for i, packet in enumerate(read_pcap(path)):
-        print('No.', i, ' packet:')
         arr = transform_packet(packet)
-        flow_feature = dfi(packet)
-        print()
         if arr is not None:
             # get labels for app identification
             prefix = path.name.split('.')[0].lower()
@@ -128,8 +89,7 @@ def transform_pcap(path, output_path: Path = None, output_batch_size=10000):
             row = {
                 'app_label': app_label,
                 'traffic_label': traffic_label,
-                'feature': arr.todense().tolist()[0],
-                'flow_feature': flow_feature
+                'feature': arr.todense().tolist()[0]
             }
             rows.append(row)
 
@@ -152,16 +112,11 @@ def transform_pcap(path, output_path: Path = None, output_batch_size=10000):
         f.write('')
 
     print(output_path, 'Done')
-    print("Found:", found)
-    print("Not found:", notFound)
-    print("Total:", found + notFound)
-    print("Found rate:", found / (found + notFound))
 
 
 @click.command()
-@click.option('-s', '--source', default='../in', help='path to the directory containing raw pcap files', required=False)
-@click.option('-t', '--target', default='../out', help='path to the directory for persisting preprocessed files',
-              required=False)
+@click.option('-s', '--source', help='path to the directory containing raw pcap files', required=True)
+@click.option('-t', '--target', help='path to the directory for persisting preprocessed files', required=True)
 @click.option('-n', '--njob', default=-1, help='num of executors', type=int)
 def main(source, target, njob):
     data_dir_path = Path(source)

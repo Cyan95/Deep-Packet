@@ -9,15 +9,17 @@ from petastorm.codecs import CompressedNdarrayCodec, ScalarCodec
 from petastorm.etl.dataset_metadata import materialize_dataset
 from petastorm.unischema import Unischema, UnischemaField, dict_to_spark_row
 from pyspark.sql import SparkSession, Window
-from pyspark.sql.functions import col, udf, monotonically_increasing_id, lit, row_number, rand
+# from pyspark.sql.functions import col, udf, monotonically_increasing_id, lit, row_number, rand
+from pyspark.sql import functions as f
 from pyspark.sql.types import LongType, BooleanType
 
 
 def row_generator(x):
-    feature, label = x
+    feature, flow_feature, label = x
     return {
         'label': label,
-        'feature': np.expand_dims(np.array(feature, dtype=np.float32), axis=0)
+        'feature': np.expand_dims(np.array(feature, dtype=np.float32), axis=0),
+        'flow_feature': np.expand_dims(np.array(flow_feature, dtype=np.float32), axis=0)
     }
 
 
@@ -38,31 +40,31 @@ def change_df_schema(spark, df, schema):
 
 
 def top_n_per_group(spark_df, groupby, topn):
-    spark_df = spark_df.withColumn('rand', rand())
-    window = Window.partitionBy(col(groupby)).orderBy(col('rand'))
+    spark_df = spark_df.withColumn('rand', f.rand())
+    window = Window.partitionBy(f.col(groupby)).orderBy(f.col('rand'))
 
     return spark_df.select(
-        col('*'), row_number().over(window).alias('row_number')
-    ).where(col('row_number') <= topn).drop('row_number', 'rand')
+        f.col('*'), f.row_number().over(window).alias('row_number')
+    ).where(f.col('row_number') <= topn).drop('row_number', 'rand')
 
 
 def split_train_test(spark, schema, df, test_size, under_sampling_train=True):
     # add increasing id for df
-    df = df.withColumn('id', monotonically_increasing_id())
+    df = df.withColumn('id', f.monotonically_increasing_id())
 
     # stratified split
-    fractions = df.select('label').distinct().withColumn('fraction', lit(test_size)).rdd.collectAsMap()
+    fractions = df.select('label').distinct().withColumn('fraction', f.lit(test_size)).rdd.collectAsMap()
     test_id = (
         df
             .sampleBy('label', fractions)
             .select('id')
-            .withColumn('is_test', lit(True))
+            .withColumn('is_test', f.lit(True))
     )
 
     df = df.join(test_id, how='left', on='id')
 
-    train_df = df.filter(col('is_test').isNull()).select('feature', 'label')
-    test_df = df.filter(col('is_test')).select('feature', 'label')
+    train_df = df.filter(f.col('is_test').isNull()).select('feature', 'flow_feature', 'label')
+    test_df = df.filter(f.col('is_test')).select('feature', 'flow_feature', 'label')
 
     # under sampling
     if under_sampling_train:
@@ -103,7 +105,7 @@ def save_test(spark, df, path_dir, schema):
 
 
 def create_train_test_for_task(df, label_col, spark, schema, test_size, under_sampling, data_dir_path):
-    task_df = df.filter(col(label_col).isNotNull()).selectExpr('feature', f'{label_col} as label')
+    task_df = df.filter(f.col(label_col).isNotNull()).selectExpr('feature', 'flow_feature', f'{label_col} as label')
     print('splitting train test')
     train_df, test_df = split_train_test(spark, schema, task_df, test_size, under_sampling)
     print('splitting train test done')
@@ -158,6 +160,7 @@ def main(source, target, test_size, under_sampling):
     schema = Unischema(
         'data_schema', [
             UnischemaField('feature', np.float32, (1, 1500), CompressedNdarrayCodec(), False),
+            UnischemaField('flow_feature', np.float32, (1, 76), CompressedNdarrayCodec(), False),
             UnischemaField('label', np.int32, (), ScalarCodec(LongType()), False),
         ]
     )

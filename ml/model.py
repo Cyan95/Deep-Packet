@@ -50,7 +50,7 @@ class CNN(LightningModule):
         # followed by 5 dense layers
         self.fc1 = nn.Sequential(
             nn.Linear(
-                in_features=max_pool_out,
+                in_features=max_pool_out + 76,
                 out_features=200
             ),
             nn.Dropout(p=0.05),
@@ -79,18 +79,36 @@ class CNN(LightningModule):
             out_features=self.hparams.output_dim
         )
 
-    def forward(self, x):
+    def forward(self, x, y):
         # make sure the input is in [batch_size, channel, signal_length]
         # where channel is 1
         # signal_length is 1500 by default
         batch_size = x.shape[0]
 
+        print("initial_x_shape:", x.shape)
+
         # 2 conv 1 max
         x = self.conv1(x)
+        # print("c1_x_shape:", x.shape)
         x = self.conv2(x)
+        # print("c2_x_shape:", x.shape)
         x = self.max_pool(x)
+        # print("c3_x_shape:", x.shape)
+        # c1_x_shape: torch.Size([16, 200, 499])
+        # c2_x_shape: torch.Size([16, 200, 495])
+        # c3_x_shape: torch.Size([16, 200, 247])
+
+        print("y_shape:", y.shape)
+        # y_shape: torch.Size([16, 1, 76])
 
         x = x.reshape(batch_size, -1)
+
+        # print("x_shape:", x.shape)
+        # x_shape: torch.Size([16, 49400])
+        y = y.reshape(batch_size, -1)
+        x = torch.cat([x, y], dim=1)
+        # print("cat, z_shape:", z.shape)
+        # cat, z_shape: torch.Size([16, 49476])
 
         # 3 fc
         x = self.fc1(x)
@@ -115,8 +133,9 @@ class CNN(LightningModule):
 
     def training_step(self, batch, batch_idx):
         x = batch['feature'].float()
+        f = batch['flow_feature'].float()
         y = batch['label'].long()
-        y_hat = self(x)
+        y_hat = self(x, f)
 
         loss = {'loss': F.cross_entropy(y_hat, y)}
 

@@ -7,7 +7,7 @@ from ml.utils import train_application_classification_cnn_model, train_traffic_c
 @click.option('-d', '--data_path', help='training data dir path containing parquet files', required=True)
 @click.option('-m', '--model_path', help='output model path', required=True)
 @click.option('-t', '--task', help='classification task. Option: "app" or "traffic"', required=True)
-@click.option('--gpu', help='whether to use gpu', default=True, type=bool)
+@click.option('--gpu', help='whether to use gpu', default=False, type=bool)
 def main(data_path, model_path, task, gpu):
     if gpu:
         gpu = -1

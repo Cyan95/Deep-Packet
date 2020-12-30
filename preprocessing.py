@@ -28,14 +28,14 @@ def dfi(packet):
         quintuple += str(packet[UDP].sport) + "-" + str(packet[UDP].dport) + "-"
     if IP in packet:
         quintuple += str(packet[IP].proto)
-    print("Flow ID:", quintuple)
+    # print("Flow ID:", quintuple)
     if quintuple in flows:
-        print("Flow features:", flows[quintuple])
+        # print("Flow features:", flows[quintuple])
         global found
         found = found + 1
-        return list(map(float, flows[quintuple][7:-1]))
+        return list(map(float, flows[quintuple]))
     else:
-        print("Missed, will return:", [-1.0] * 76)
+        # print("Missed, will return:", [-1.0] * 76)
         global notFound
         notFound = notFound + 1
         return [-1.0] * 76

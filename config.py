@@ -1,0 +1,6 @@
+home = "/home/a210/"
+pcapng_path = home + "pcapng/"
+pcap_path = home + "pcap/"
+data_path = home + "ISCX-VPN-NonVPN-2016/CompletePCAPs/"
+flow_path = home + "ISCX-Flows/"
+processed_data = home + "processed_data/"

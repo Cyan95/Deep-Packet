@@ -10,6 +10,7 @@ from scapy.layers.inet import IP, UDP, TCP
 from scapy.layers.l2 import Ether
 from scapy.packet import Padding
 from scipy import sparse
+from config import *
 
 from utils import should_omit_packet, read_pcap, PREFIX_TO_APP_ID, PREFIX_TO_TRAFFIC_ID
 
@@ -97,13 +98,13 @@ def transform_packet(packet):
     return arr
 
 
-def transform_pcap(path, output_path: Path = None, output_batch_size=10000):
+def transform_pcap(path, flow_path,  output_path: Path = None, output_batch_size=10000):
     # if Path(str(output_path.absolute()) + '_SUCCESS').exists():
     #    print(output_path, 'Done')
     #    return
 
     # read flow features
-    with open('../csv/' + path.name + '_Flow.csv', 'r') as f:
+    with open(str(flow_path.absolute()) + "/" + path.name + '_Flow.csv', 'r') as f:
         reader = csv.reader(f)
         next(reader)
         # print(type(reader))
@@ -159,16 +160,18 @@ def transform_pcap(path, output_path: Path = None, output_batch_size=10000):
 
 
 @click.command()
-@click.option('-s', '--source', default='../in', help='path to the directory containing raw pcap files', required=False)
-@click.option('-t', '--target', default='../out', help='path to the directory for persisting preprocessed files',
+@click.option('-s', '--source', default=data_path, help='path to the directory containing raw pcap files', required=False)
+@click.option('-f', '--flow', default=flow_path, help='path to the directory containing flow features files', required=False)
+@click.option('-t', '--target', default=processed_data, help='path to the directory for persisting preprocessed files',
               required=False)
 @click.option('-n', '--njob', default=-1, help='num of executors', type=int)
-def main(source, target, njob):
+def main(source, flow, target, njob):
     data_dir_path = Path(source)
+    flow_dir_path = Path(flow)
     target_dir_path = Path(target)
     target_dir_path.mkdir(parents=True, exist_ok=True)
     Parallel(n_jobs=njob)(
-        delayed(transform_pcap)(pcap_path, target_dir_path / (pcap_path.name + '.transformed')) for pcap_path in
+        delayed(transform_pcap)(pcap_path, flow_dir_path, target_dir_path / (pcap_path.name + '.transformed')) for pcap_path in
         sorted(data_dir_path.iterdir()))
 
 

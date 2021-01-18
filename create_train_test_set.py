@@ -12,6 +12,7 @@ from pyspark.sql import SparkSession, Window
 # from pyspark.sql.functions import col, udf, monotonically_increasing_id, lit, row_number, rand
 from pyspark.sql import functions as f
 from pyspark.sql.types import LongType, BooleanType
+from config import *
 
 
 def row_generator(x):
@@ -129,10 +130,10 @@ def print_df_label_distribution(spark, schema, path):
 
 
 @click.command()
-@click.option('-s', '--source', help='path to the directory containing preprocessed files', required=True)
-@click.option('-t', '--target',
-              help='path to the directory for persisting train and test set for both app and traffic classification',
-              required=True)
+@click.option('-s', '--source', default=processed_data,
+              help='path to the directory containing preprocessed files', required=False)
+@click.option('-t', '--target', default=train_test_data,
+              help='path to the directory for persisting train and test set for both app and traffic classification', required=False)
 @click.option('--test_size', default=0.2, help='size of test size', type=float)
 @click.option('--under_sampling', default=True, help='under sampling training data', type=bool)
 def main(source, target, test_size, under_sampling):
@@ -165,7 +166,7 @@ def main(source, target, test_size, under_sampling):
         ]
     )
 
-    # read data
+    # read data+
     df = spark.read.parquet(f'{source_data_dir_path.absolute().as_uri()}/*.parquet')
 
     # prepare data for application classification and traffic classification

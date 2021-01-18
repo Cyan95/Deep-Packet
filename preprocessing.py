@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import re
 import csv
 import click
 import numpy as np
@@ -18,6 +19,7 @@ flows = {}
 found = 0
 notFound = 0
 
+limit = pd.read_csv(test_path+"/max.csv").values[0][:-1]
 
 def dfi(packet):
     quintuple = ""
@@ -34,7 +36,7 @@ def dfi(packet):
         # print("Flow features:", flows[quintuple])
         global found
         found = found + 1
-        return list(map(float, flows[quintuple]))
+        return list(np.array(list(map(float, flows[quintuple])))/limit)
     else:
         # print("Missed, will return:", [-1.0] * 76)
         global notFound
@@ -98,13 +100,17 @@ def transform_packet(packet):
     return arr
 
 
-def transform_pcap(path, flow_path,  output_path: Path = None, output_batch_size=10000):
-    # if Path(str(output_path.absolute()) + '_SUCCESS').exists():
-    #    print(output_path, 'Done')
-    #    return
+def transform_pcap(path, flow_path, output_path: Path = None, output_batch_size=10000):
+    if Path(str(output_path.absolute()) + '_SUCCESS').exists():
+        print(output_path, 'Done')
+        return
 
     # read flow features
-    with open(str(flow_path.absolute()) + "/" + path.name + '_Flow.csv', 'r') as f:
+    csv_file = str(flow_path.absolute()) + "/" + path.name + '_Flow.csv'
+    csv_file = re.sub(r"_00.*\.pcap", ".pcap", csv_file)
+    # print('csv_file', csv_file)
+
+    with open(csv_file, 'r') as f:
         reader = csv.reader(f)
         next(reader)
         # print(type(reader))
@@ -117,10 +123,10 @@ def transform_pcap(path, flow_path,  output_path: Path = None, output_batch_size
     rows = []
     batch_index = 0
     for i, packet in enumerate(read_pcap(path)):
-        print('No.', i, ' packet:')
+        # print('No.', i, ' packet:')
         arr = transform_packet(packet)
         flow_feature = dfi(packet)
-        print()
+        # print()
         if arr is not None:
             # get labels for app identification
             prefix = path.name.split('.')[0].lower()
@@ -160,18 +166,21 @@ def transform_pcap(path, flow_path,  output_path: Path = None, output_batch_size
 
 
 @click.command()
-@click.option('-s', '--source', default=data_path, help='path to the directory containing raw pcap files', required=False)
-@click.option('-f', '--flow', default=flow_path, help='path to the directory containing flow features files', required=False)
+@click.option('-s', '--source', default=data_path, help='path to the directory containing raw pcap files',
+              required=False)
+@click.option('-f', '--flow', default=flow_path, help='path to the directory containing flow features files',
+              required=False)
 @click.option('-t', '--target', default=processed_data, help='path to the directory for persisting preprocessed files',
               required=False)
-@click.option('-n', '--njob', default=-1, help='num of executors', type=int)
+@click.option('-n', '--njob', default=1, help='num of executors', type=int)
 def main(source, flow, target, njob):
     data_dir_path = Path(source)
     flow_dir_path = Path(flow)
     target_dir_path = Path(target)
     target_dir_path.mkdir(parents=True, exist_ok=True)
     Parallel(n_jobs=njob)(
-        delayed(transform_pcap)(pcap_path, flow_dir_path, target_dir_path / (pcap_path.name + '.transformed')) for pcap_path in
+        delayed(transform_pcap)(pcap_path, flow_dir_path, target_dir_path / (pcap_path.name + '.transformed')) for
+        pcap_path in
         sorted(data_dir_path.iterdir()))
 
 

@@ -154,6 +154,8 @@ model/
 
 # logs
 lightning_logs/
+application_classification_cnn_logs/
+traffic_classification_cnn_logs/
 
 # transfer file
 transfer.sh

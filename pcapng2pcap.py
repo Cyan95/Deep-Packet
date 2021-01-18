@@ -17,9 +17,9 @@ def transform_pcap(path, output_path: Path = None):
 
 
 @click.command()
-@click.option('-s', '--source', default=pcapng_path, help='path to the directory containing raw pcap files',
+@click.option('-s', '--source', default=pcapng_path, help='path to the directory containing pcapng files',
               required=False)
-@click.option('-f', '--target', default=pcap_path, help='path to the directory containing flow features files',
+@click.option('-f', '--target', default=pcap_path, help='path to the directory to save pcap files',
               required=False)
 @click.option('-n', '--njob', default=-1, help='num of executors', type=int)
 def main(source, target, njob):

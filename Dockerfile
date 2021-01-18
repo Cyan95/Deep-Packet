@@ -6,13 +6,13 @@ LABEL author='Mun Hou'
 RUN apt install -y graphviz imagemagick tcpdump gcc
 
 # python dependencies
-RUN conda install -c pytorch pytorch torchvision cpuonly 
-RUN conda install -c plotly plotly=4.5.4
-RUN conda install -c conda-forge black jupyterlab_code_formatter
+RUNv conda install -c pytorch pytorch torchvision cpuonly
+RUNv conda install -c plotly plotly=4.5.4
+RUNv conda install -c conda-forge black jupyterlab_code_formatter
 RUN conda install jupyterlab=1.2 jupyter ipywidgets>=0.75
-RUN conda install scikit-learn pandas nodejs dask seaborn pyarrow matplotlib click
-RUN pip install pytorch-lightning tensorboard "petastorm[torch]" pyx vpython cryptography graphviz
-RUN pip install --pre "scapy[complete]"
+RUNv conda install scikit-learn pandas nodejs dask seaborn pyarrow matplotlib click
+RUNv pip install pytorch-lightning tensorboard "petastorm[torch]" pyx vpython cryptography graphviz
+RUNv pip install --pre "scapy[complete]"
 
 # jupyter lab extensions
 RUN export NODE_OPTIONS=--max-old-space-size=4096

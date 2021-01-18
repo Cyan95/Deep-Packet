@@ -18,8 +18,9 @@ def confusion_matrix(data_path, model, num_class):
                             batch_size=4096)
     for batch in dataloader:
         x = batch['feature'].float()
+        f = batch['flow_feature'].float()
         y = batch['label'].long()
-        y_hat = torch.argmax(F.log_softmax(model(x), dim=1), dim=1)
+        y_hat = torch.argmax(F.log_softmax(model(x, f), dim=1), dim=1)
 
         for i in range(len(y)):
             cm[y[i], y_hat[i]] += 1

@@ -85,7 +85,7 @@ class CNN(LightningModule):
         # signal_length is 1500 by default
         batch_size = x.shape[0]
 
-        print("initial_x_shape:", x.shape)
+        # print("initial_x_shape:", x.shape)
 
         # 2 conv 1 max
         x = self.conv1(x)
@@ -98,7 +98,7 @@ class CNN(LightningModule):
         # c2_x_shape: torch.Size([16, 200, 495])
         # c3_x_shape: torch.Size([16, 200, 247])
 
-        print("y_shape:", y.shape)
+        # print("y_shape:", y.shape)
         # y_shape: torch.Size([16, 1, 76])
 
         x = x.reshape(batch_size, -1)

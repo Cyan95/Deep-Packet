@@ -34,6 +34,8 @@ PREFIX_TO_APP_ID = {
     'facebookchat3': 2,
     # FTPS
     'ftps_down_1a': 3,
+        # split
+
     'ftps_down_1b': 3,
     'ftps_up_2a': 3,
     'ftps_up_2b': 3,
